@@ -26,37 +26,21 @@ This ensures that commit identifiers will remain stable during the backport proc
 
 ### Standalone pull requests
 
-Update your local clone of the relevant repository, and identify the commit(s) which need to be backported
-(all the commits listed in the pull request, as merged).
-If multiple commits are involved, it is expected that they will be consecutive (since they were part of the same pull request).
+Backporting a commit is automated by running `make backport release=<release-branch> pr=<PR to cherry-pick>`. The `make` target runs a script,
+[backport.sh](https://github.com/submariner-io/shipyard/scripts/shared/backport.sh). The script is originally being used by Kubernetes community
+and has been reused, and edited to suit the needs, from [their repo](https://github.com/kubernetes/kubernetes/blob/master/hack/cherry_pick_pull.sh).
+The script does the following:
 
-Check out a new backport branch based on the _target_ branch;
-for example, to backport PR 1431 in the operator to the 0.9 release branch:
+1. Creates a PR on `<release-branch>` with title `Automated cherry pick of <original PR number> <original PR title>`.
+2. Adds `backport-handled` label to the original PR.
+3. Gives an option to create patches to a release branch without making a PR by setting `DRY_RUN` variable.
+   When `DRY_RUN` is set the script will leave you in a branch containing the commits you cherry-picked.
+4. Multiple PRs can be cherry-picked together by passing the comma-separated list of PRs to be cherry-picked like `pr=<PR1,PR2>`.   
 
-```sh
-git checkout -b backport-1431-0.9 origin/release-0.9
-```
-
-Then, cherry pick the commits:
-
-```sh
-git cherry-pick -x 0448fcd60972da03c84c345c24c2cf1c34b6b42b
-```
-
-The `-x` option ensures that the commit is referenced in the resulting commit message.
-
-If necessary, resolve any conflicts which occur, and conclude with
-
-```sh
-git cherry-pick --continue
-```
-
-Push the resulting branch and open a new pull request; add “Backport: ” to the pull request description to identify it as a backport.
-(Do not use the “backport” label here; that doesn’t identify backports, it identifies requested backports.)
-On the original pull request, add a comment referencing the new pull request and identifying it as a backport to the relevant release.
-
-Once _all_ the requested backports of the original pull request have been handled, add the “backport-handled” label.
-This will result in the pull request disappearing from the list of pending backports.
+The script assumes following values. Please change them according to your setup.
+1. Remote for the upstream repository, `UPSTREAM_REMOTE`, is set to `origin`.
+2. Remote for your forked repository, `FORK_REMOTE`  is set to `GITHUB_USER`.
+3. `GITHUB_USER` needs to be set to your `GitHub username`.
 
 ### Pull requests requiring dependent backports
 
